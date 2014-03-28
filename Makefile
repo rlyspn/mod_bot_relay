@@ -10,5 +10,8 @@ $(MBR): $(MBR).erl
 link: $(MBR)
 	sudo cp $(MBR).beam /usr/lib/ejabberd/ebin/$(MBR).beam
 
+restart: link
+	sudo service ejabberd restart
+
 clean:
 	rm -rf *.beam
