@@ -45,13 +45,13 @@ stop(_Host) ->
     ?INFO_MSG("Stoping mod_bot_relay", []),
     ok.
 
-init([_Host, _Opts]) ->
-    __Host = gen_mod:get_opt_host(_Host, _Opts, "relay.@HOST@"),
-    ejabberd_router:register_route(__Host, {apply, ?MODULE, route}),
+init([Host, Opts]) ->
+    _Host = gen_mod:get_opt_host(Host, Opts, "@HOST@"),
+    ejabberd_router:register_route(_Host, {apply, ?MODULE, route}),
     ?DEBUG("Initializing mod_relay_bot.", []),
-    {ok, _Host}.
+    {ok, Host}.
 
-
+% Boilerplate
 handle_call(stop, _From, _Host) ->
     {stop, normal, ok, _Host}.
 
@@ -67,3 +67,23 @@ terminate(_Reason, _Host) ->
 
 code_change(_OldVersion, Host, _Extra) ->
     {ok, Host}.
+
+% Routing Below
+%% Presence Routing
+route(From, To, {xmlelement, "presence", _, _} = Packet) ->
+    case xml:get_tag_attr_s("type", Packet) of
+        _ ->
+            ?INFO_MSG("Presence Packet: ~p", [Packet])
+    end,
+    ok;
+route(From, To, {xmlelement, "message", _, _} = Packet) ->
+    case xml:get_subtag_cdata(Packet, "body") of
+        "" -> ok;
+        Body ->
+            case xml:get_tag_attr_s("type", Packet) of
+                "chat"  -> ?INFO_MSG("Received message To: ~p, From: ~p, Body: ~p.\n", [To, From, Body]);
+                "error" -> ?ERROR_MSG("Received an error message.\n", []);
+                _       -> ?INFO_MSG("Received message To: ~p, From: ~p, Body: ~p.\n", [To, From, Body])
+        end
+    end,
+    ok.

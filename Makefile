@@ -7,10 +7,13 @@ all: $(MBR)
 $(MBR): $(MBR).erl
 	$(EC) $(INC) $(MBR).erl
 
-link: $(MBR)
+install: $(MBR)
 	sudo cp $(MBR).beam /usr/lib/ejabberd/ebin/$(MBR).beam
 
-restart: link
+stop:
+	sudo service ejabberd stop
+
+restart: stop install
 	sudo service ejabberd restart
 
 clean:
