@@ -1,10 +1,12 @@
 -module(mod_bot_relay).
+-behavior(gen_mod).
+-behavior(gen_server).
+
 -author("Riley Spahn").
+
 
 %% Behavior for a module
 -include("ejabberd.hrl").
--behavior(gen_mod).
--behavior(gen_server).
 
 -export([start_link/2]).
 -export([
@@ -18,37 +20,36 @@
         code_change/3
     ]).
 
+-export([route/3]).
+
 -define(BOTNAME, mod_bot_relay).
--define(PROCNAME, ejabberd_mod_bot_relay).
+-define(PROCNAME, ejabberd_mod_bot).
 
 %% Start the server.
-start_link(_Host, _Opts) ->
-    Proc = gen_mod:get_module_proc(_Host, ?PROCNAME),
-    gen_server:start_link({local, Proc}, ?MODULE,
-        [_Host, _Opts], []),
+start_link(Host, Opts) ->
+    Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
+    gen_server:start_link({local, Proc}, ?MODULE, [Host, Opts], []),
     ?INFO_MSG("Starting link: mod_bot_relay", []).
 
-start(_Host, _Opts) ->
-    Proc = gen_mod:get_module_proc(_Host, ?PROCNAME),
-    ChildSpec = {Proc, {?MODULE, start_link, [_Host, _Opts]}, temporary,
-        1000, worker, [?MODULE]},
+start(Host, Opts) ->
+    Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
+    ChildSpec = {Proc,
+        {?MODULE, start_link, [Host, Opts]},
+        temporary, 1000, worker, [?MODULE]},
     supervisor:start_child(ejabberd_sup, ChildSpec),
+    ?INFO_MSG("Starting mod_bot_relay", []).
 
-    ?INFO_MSG("Starting mod_bot_relay", []),
-    ok.
-
-stop(_Host) ->
-    Proc = gen_mod:get_module_proc(_Host, ?PROCNAME),
+stop(Host) ->
+    Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
     gen_server:call(Proc, stop),
     supervisor:terminat_child(ejabberd_sup, Proc),
     superviser:delete_child(ejabberd_sup, Proc),
-    ?INFO_MSG("Stoping mod_bot_relay", []),
-    ok.
+    ?INFO_MSG("Stoping mod_bot_relay", []).
 
 init([Host, Opts]) ->
-    _Host = gen_mod:get_opt_host(Host, Opts, "@HOST@"),
+    ?INFO_MSG("Initializing mod_relay_bot.", []),
+    _Host = gen_mod:get_opt_host(Host, Opts, "relay.@HOST@"),
     ejabberd_router:register_route(_Host, {apply, ?MODULE, route}),
-    ?DEBUG("Initializing mod_relay_bot.", []),
     {ok, Host}.
 
 % Boilerplate
@@ -72,18 +73,20 @@ code_change(_OldVersion, Host, _Extra) ->
 %% Presence Routing
 route(From, To, {xmlelement, "presence", _, _} = Packet) ->
     case xml:get_tag_attr_s("type", Packet) of
-        _ ->
-            ?INFO_MSG("Presence Packet: ~p", [Packet])
+        _Presence ->
+            ?INFO_MSG("Other kind of presence~n~p", [Packet])
     end,
     ok;
+%% Message Routing
 route(From, To, {xmlelement, "message", _, _} = Packet) ->
     case xml:get_subtag_cdata(Packet, "body") of
         "" -> ok;
         Body ->
             case xml:get_tag_attr_s("type", Packet) of
-                "chat"  -> ?INFO_MSG("Received message To: ~p, From: ~p, Body: ~p.\n", [To, From, Body]);
-                "error" -> ?ERROR_MSG("Received an error message.\n", []);
-                _       -> ?INFO_MSG("Received message To: ~p, From: ~p, Body: ~p.\n", [To, From, Body])
+                "chat"  -> ?INFO_MSG("Received chat message \n\tTo: ~p\n\tFrom: ~p\n\tBody: ~p.\n",
+                        [To, From, Body]);
+                "error" -> ?INFO_MSG("Received an error message.\n", []);
+                _       -> ?INFO_MSG("Received other message To: ~p, From: ~p, Body: ~p.\n", [To, From, Body])
         end
     end,
     ok.
