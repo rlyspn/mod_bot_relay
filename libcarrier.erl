@@ -3,6 +3,7 @@
     [get_relay_packet/1]
 ).
 
+-import(base64, [decode_to_string/1]).
 -import(mochijson2, [decode/1, decoder/2]).
 -include("ejabberd.hrl").
 
@@ -16,7 +17,7 @@
 %%  time: ".."
 %% }
 get_relay_packet(MsgBody) ->
-    DecodedMsg = mochijson2:decode(MsgBody),
+    DecodedMsg = mochijson2:decode(decode_to_string(MsgBody)),
     %io:format(DecodedMsg),
     %io:format("~p\n", DecodedMsg),
     DecodedMsg.
