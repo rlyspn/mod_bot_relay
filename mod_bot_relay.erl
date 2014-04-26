@@ -47,51 +47,44 @@ stop(Host) ->
     superviser:delete_child(ejabberd_sup, Proc),
     ?INFO_MSG("Stoping mod_bot_relay", []).
 
-on_filter_packet({From, To, XML} = Packet) ->
-    ?INFO_MSG("~p -> ~p\nReceived Packet ~p", [From, To, XML]),
+get_really_from_name([_, _, _, _, {_, FromName}, _]) ->
+        ?INFO_MSG("FromName: ~p", [FromName]),
+        FromName;
+get_really_from_name(Attrs) ->
+    nil.
+
+get_really_from_id([_, _, _, _, _, {_, FromID}]) ->
+    ?INFO_MSG("FromID: ~p", [FromID]),
+    FromID;
+get_really_from_id(Attr) ->
+    nil.
+
+parse_really_from(RFrom) ->
+    ?INFO_MSG("Parsing: ~p", RFrom),
+    [UserName , Host | Tail] = string:tokens(RFrom, "@"),
+    ?INFO_MSG("StringTokens: ~p", UserName),
+    {UserName, Host}.
+
+rewrite_from_packet(From, nil) ->
+    From;
+rewrite_from_packet({Jid, Name1, Host1, Ar1, Name2, Host2, Ar2} = From, RFrom) ->
+
+    {RFromName, RFromHost} = parse_really_from(RFrom),
+    ?INFO_MSG("ReallyFromName: ~p, ReallyFromHost: ~p.", [RFromName, RFromHost]),
+    {Jid, RFromName, RFromHost, Ar1, RFromName, RFromHost, Ar2}.
+
+%on_filter_packet({From, To, XML} = Packet) ->
+on_filter_packet({From, To, {xmlelement, "message", Attrs, Els} = Packet} = Msg) ->
+
+    ?INFO_MSG("Maybe really to: ~p", [length(Attrs)]),
+    ?INFO_MSG("===Received Message Packet~n~p->~n~p~nAttrs:~p~nEls:~p", [From, To, Attrs, Els]),
+    FromName = get_really_from_name(Attrs),
+    FromID = get_really_from_id(Attrs),
+    NewFrom = rewrite_from_packet(From, FromName),
+    {NewFrom, To, {xmlelement, "message", Attrs, Els}};
+
+%% Handle all non-message packets.
+on_filter_packet(Packet) ->
+    ?INFO_MSG("Received NonMessage packet.", []),
     Packet.
 
-%%init([Host, Opts]) ->
-%%    ?INFO_MSG("Initializing mod_relay_bot.", []),
-%%    _Host = gen_mod:get_opt_host(Host, Opts, "@HOST@"),
-%%    ejabberd_router:register_route(_Host, {apply, ?MODULE, route}),
-%%    {ok, Host}.
-
-% Boilerplate
-%%handle_call(stop, _From, _Host) ->
-%%    {stop, normal, ok, _Host}.
-%%
-%%handle_cast(_Msg, _Host) ->
-%%    {noreplay, _Host}.
-%%
-%%handle_info(_Msg, _Host) ->
-%%    {noreplay, _Host}.
-%%
-%%terminate(_Reason, _Host) ->
-%%    ejabberd_route:unregister_route(_Host),
-%%    ok.
-%%
-%%code_change(_OldVersion, Host, _Extra) ->
-%%    {ok, Host}.
-%%
-%%% Routing Below
-%%%% Presence Routing
-%%route(From, To, {xmlelement, "presence", _, _} = Packet) ->
-%%    case xml:get_tag_attr_s("type", Packet) of
-%%        _Presence ->
-%%            ?INFO_MSG("Other kind of presence~n~p", [Packet])
-%%    end,
-%%    ok;
-%%%% Message Routing
-%%route(From, To, {xmlelement, "message", _, _} = Packet) ->
-%%    case xml:get_subtag_cdata(Packet, "body") of
-%%        "" -> ok;
-%%        Body ->
-%%            case xml:get_tag_attr_s("type", Packet) of
-%%                "chat"  -> ?INFO_MSG("Received chat message \n\tTo: ~p\n\tFrom: ~p\n\tBody: ~p.\n",
-%%                        [To, From, Body]);
-%%                "error" -> ?INFO_MSG("Received an error message.\n", []);
-%%                _       -> ?INFO_MSG("Received other message To: ~p, From: ~p, Body: ~p.\n", [To, From, Body])
-%%        end
-%%    end,
-%%    ok.
