@@ -61,11 +61,13 @@ class SendBot(sx.ClientXMPP):
         self.iterations = iterations
 
     def session_start(self, event):
+        msg = '<message type="chat"  from="carrierpigeon2@localhost" to="carrierpigeon1@localhost" reallyfrom="chris@localhost" messageid="476"><body>I\'m in the subway</body><active xmlns="http://jabber.org/protocol/chatstates"></active></message>'
         self.send_presence()
         for i in range(self.iterations):
             t = time.time()
             log_result('sent', t)
-            self.send_message(self.to_jid, "Test: %d" % i)
+            #self.send_message(self.to_jid, "Test: %d" % i)
+            self.send_raw(msg)
             time.sleep(1)
         self.disconnect(wait=False)
 
@@ -124,4 +126,4 @@ else:
     listener_bot.disconnect(wait=False)
     diffs = process_log(log_path)
     print '%f %f %f %f %f' % (np.mean(diffs), np.median(diffs), np.std(diffs),
-                              np.mininum(diffs), np.max(diffs))
+                              np.min(diffs), np.max(diffs))
