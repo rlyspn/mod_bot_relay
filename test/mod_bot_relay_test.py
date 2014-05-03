@@ -123,4 +123,5 @@ else:
     send_bot.process(block=True)
     listener_bot.disconnect(wait=False)
     diffs = process_log(log_path)
-    print '%f %f %f' % (np.mean(diffs), np.median(diffs), np.std(diffs))
+    print '%f %f %f %f %f' % (np.mean(diffs), np.median(diffs), np.std(diffs),
+                              np.mininum(diffs), np.max(diffs))
