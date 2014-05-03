@@ -2,6 +2,7 @@
 
 import json
 import logging
+import numpy as np
 import os
 import re
 import sleekxmpp as sx
@@ -121,4 +122,5 @@ else:
     send_bot.connect(address=(ip, port))
     send_bot.process(block=True)
     listener_bot.disconnect(wait=False)
-    process_log(log_path)
+    diffs = process_log(log_path)
+    print '%f %f %f' % (np.mean(diffs), np.median(diffs), np.std(diffs))
