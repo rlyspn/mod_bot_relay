@@ -54,20 +54,28 @@ class ListenerBot(sx.ClientXMPP):
 
 
 class SendBot(sx.ClientXMPP):
-    def __init__(self, jid, password, to_jid, iterations):
+    def __init__(self, jid, password, to_jid, iterations, relay=False):
         sx.ClientXMPP.__init__(self, jid, password)
         self.to_jid = to_jid
+        self.from_jid = jid
         self.add_event_handler("session_start", self.session_start)
         self.iterations = iterations
+        self.relay = relay
 
     def session_start(self, event):
-        msg = '<message type="chat"  from="carrierpigeon2@localhost" to="carrierpigeon1@localhost" reallyfrom="chris@localhost" messageid="476"><body>I\'m in the subway</body><active xmlns="http://jabber.org/protocol/chatstates"></active></message>'
+        msg = '<message type="chat"  from="' + self.from_jid +\
+                '" to="' + self.to_jid + '" reallyfrom=' +\
+              '"chris@localhost" messageid="476"><body>I\'m in the subway' +\
+              '</body><active xmlns="http://jabber.org/protocol/chatstate' +\
+              's"></active></message>'
         self.send_presence()
         for i in range(self.iterations):
             t = time.time()
             log_result('sent', t)
-            #self.send_message(self.to_jid, "Test: %d" % i)
-            self.send_raw(msg)
+            if self.relay:
+                self.send_raw(msg)
+            else:
+                self.send_message(self.to_jid, "Test: %d" % i)
             time.sleep(1)
         self.disconnect(wait=False)
 
@@ -105,25 +113,27 @@ def process_log(log_path):
     return diffs
 
 
-if len(sys.argv) != 3:
-    error_msg = "Expected: ./mod_bot_relay_test.py <config file> <log_file>"
+if len(sys.argv) != 4:
+    error_msg = "Expected: ./mod_bot_relay_test.py <config file> <log_file>" +\
+            "<1 for relay 0 otherwise>"
     print error_msg
 else:
     config_path = sys.argv[1]
     log_path = sys.argv[2]
     prepare_log(log_path)
+    relay = True if sys.argv[3] == '1' else False
 
     from_j, from_p, to_j, to_p, ip, port = read_config(config_path)
 
     listener_bot = ListenerBot(to_j, to_p, "out.log")
     listener_bot.connect(address=(ip, port))
     listener_bot.process(block=False)
-
     time.sleep(5)
-    send_bot = SendBot(from_j, from_p, to_j, 1)
+
+    send_bot = SendBot(from_j, from_p, to_j, 100, relay)
     send_bot.connect(address=(ip, port))
     send_bot.process(block=True)
-    listener_bot.disconnect(wait=False)
     diffs = process_log(log_path)
     print '%f %f %f %f %f' % (np.mean(diffs), np.median(diffs), np.std(diffs),
                               np.min(diffs), np.max(diffs))
+    listener_bot.disconnect(wait=False)
