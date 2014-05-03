@@ -1,0 +1,4 @@
+{
+    "to_user":   {"user_name":"user1", "password": "pass1"},
+    "from_user": {"user_name":"user2", "password": "pass2"}
+}
