@@ -28,17 +28,19 @@ stop(Host) ->
     superviser:delete_child(ejabberd_sup, Proc),
     ?INFO_MSG("Stoping mod_bot_relay", []).
 
-get_really_from_name([_, _, _, _, {_, FromName}, _]) ->
-        ?INFO_MSG("FromName: ~p", [FromName]),
-        FromName;
-get_really_from_name(Attrs) ->
-    nil.
+get_really_from_name([]) ->
+    nil;
+get_really_from_name([{"reallyFrom", FromName} | ListTail]) ->
+    FromName;
+get_really_from_name([{_, FromName} | ListTail]) ->
+    get_really_from_name(ListTail).
 
-get_really_from_id([_, _, _, _, _, {_, FromID}]) ->
-    ?INFO_MSG("FromID: ~p", [FromID]),
+get_really_from_id([]) ->
+    nil;
+get_really_from_id([{"reallyFromID", FromID} | ListTail]) ->
     FromID;
-get_really_from_id(Attr) ->
-    nil.
+get_really_from_id([{_, FromID} | ListTail]) ->
+    get_really_from_id(ListTail).
 
 parse_really_from(RFrom) ->
     ?INFO_MSG("Parsing: ~p", RFrom),
@@ -57,7 +59,7 @@ rewrite_from_packet({Jid, Name1, Host1, Ar1, Name2, Host2, Ar2} = From, RFrom) -
 on_filter_packet({From, To, {xmlelement, "message", Attrs, Els} = Packet} = Msg) ->
 
     ?INFO_MSG("Maybe really to: ~p", [length(Attrs)]),
-    ?INFO_MSG("===Received Message Packet~n~p->~n~p~nAttrs:~p~nEls:~p", [From, To, Attrs, Els]),
+    ?INFO_MSG("===Received Message Packet~nFrom:~p->~nTo:~p~nAttrs:~p~nEls:~p", [From, To, Attrs, Els]),
     FromName = get_really_from_name(Attrs),
     FromID = get_really_from_id(Attrs),
     NewFrom = rewrite_from_packet(From, FromName),
