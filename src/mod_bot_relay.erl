@@ -43,9 +43,7 @@ get_really_from_id([{_, FromID} | ListTail]) ->
     get_really_from_id(ListTail).
 
 parse_really_from(RFrom) ->
-    ?INFO_MSG("Parsing: ~p", RFrom),
     [UserName , Host | Tail] = string:tokens(RFrom, "@"),
-    ?INFO_MSG("StringTokens: ~p", UserName),
     {UserName, Host}.
 
 rewrite_from_packet(From, nil) ->
