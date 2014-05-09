@@ -51,13 +51,10 @@ rewrite_from_packet(From, nil) ->
 rewrite_from_packet({Jid, Name1, Host1, Ar1, Name2, Host2, Ar2} = From, RFrom) ->
 
     {RFromName, RFromHost} = parse_really_from(RFrom),
-    ?INFO_MSG("ReallyFromName: ~p, ReallyFromHost: ~p.", [RFromName, RFromHost]),
     {Jid, RFromName, RFromHost, Ar1, RFromName, RFromHost, Ar2}.
 
 on_filter_packet({From, To, {xmlelement, "message", Attrs, Els} = Packet} = Msg) ->
 
-    ?INFO_MSG("Maybe really to: ~p", [length(Attrs)]),
-    ?INFO_MSG("===Received Message Packet~nFrom:~p->~nTo:~p~nAttrs:~p~nEls:~p", [From, To, Attrs, Els]),
     FromName = get_really_from_name(Attrs),
     FromID = get_really_from_id(Attrs),
     NewFrom = rewrite_from_packet(From, FromName),
@@ -65,6 +62,5 @@ on_filter_packet({From, To, {xmlelement, "message", Attrs, Els} = Packet} = Msg)
 
 %% Handle all non-message packets.
 on_filter_packet(Packet) ->
-    ?INFO_MSG("Received NonMessage packet.", []),
     Packet.
 
