@@ -1,6 +1,6 @@
 MBR=mod_bot_relay
 EC=erlc
-INC=-I /home/riley/carrierpigeon/ejabberd_src/ejabberd/src
+INC=-I ${EJABBERD_PATH}
 
 all: $(MBR)
 
